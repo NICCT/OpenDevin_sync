@@ -5,7 +5,6 @@ SHELL=/bin/bash
 DOCKER_IMAGE = ghcr.io/opendevin/sandbox
 BACKEND_PORT = 3000
 BACKEND_HOST = "127.0.0.1:$(BACKEND_PORT)"
-FRONTEND_PORT = 3001
 DEFAULT_WORKSPACE_DIR = "./workspace"
 DEFAULT_MODEL = "gpt-3.5-turbo-1106"
 CONFIG_FILE = config.toml
@@ -24,9 +23,7 @@ build:
 	@$(MAKE) -s check-dependencies
 	@$(MAKE) -s pull-docker-image
 	@$(MAKE) -s install-python-dependencies
-	@$(MAKE) -s install-frontend-dependencies
 	@$(MAKE) -s install-precommit-hooks
-	@$(MAKE) -s build-frontend
 	@echo "$(GREEN)Build completed successfully.$(RESET)"
 
 check-dependencies:
@@ -130,17 +127,6 @@ install-python-dependencies:
 	@poetry install --without evaluation
 	@echo "$(GREEN)Python dependencies installed successfully.$(RESET)"
 
-install-frontend-dependencies:
-	@echo "$(YELLOW)Setting up frontend environment...$(RESET)"
-	@echo "$(YELLOW)Detect Node.js version...$(RESET)"
-	@cd frontend && node ./scripts/detect-node-version.js
-	@cd frontend && \
-		echo "$(BLUE)Installing frontend dependencies with npm...$(RESET)" && \
-		npm install && \
-		echo "$(BLUE)Running make-i18n with npm...$(RESET)" && \
-		npm run make-i18n
-	@echo "$(GREEN)Frontend dependencies installed successfully.$(RESET)"
-
 install-precommit-hooks:
 	@echo "$(YELLOW)Installing pre-commit hooks...$(RESET)"
 	@git config --unset-all core.hooksPath || true
@@ -151,19 +137,10 @@ lint:
 	@echo "$(YELLOW)Running linters...$(RESET)"
 	@poetry run pre-commit run --files opendevin/**/* agenthub/**/* --show-diff-on-failure --config $(PRECOMMIT_CONFIG_PATH)
 
-build-frontend:
-	@echo "$(YELLOW)Building frontend...$(RESET)"
-	@cd frontend && npm run build
-
 # Start backend
 start-backend:
 	@echo "$(YELLOW)Starting backend...$(RESET)"
 	@poetry run uvicorn opendevin.server.listen:app --port $(BACKEND_PORT) --reload --reload-dir opendevin --reload-dir agenthub --reload-dir evaluation
-
-# Start frontend
-start-frontend:
-	@echo "$(YELLOW)Starting frontend...$(RESET)"
-	@cd frontend && VITE_BACKEND_HOST=$(BACKEND_HOST) VITE_FRONTEND_PORT=$(FRONTEND_PORT) npm run start
 
 # Run the app
 run:
@@ -178,7 +155,6 @@ run:
 	@echo "$(YELLOW)Waiting for the backend to start...$(RESET)"
 	@until nc -z localhost $(BACKEND_PORT); do sleep 0.1; done
 	@echo "$(GREEN)Backend started successfully.$(RESET)"
-	@cd frontend && echo "$(BLUE)Starting frontend with npm...$(RESET)" && npm run start -- --port $(FRONTEND_PORT)
 	@echo "$(GREEN)Application started successfully.$(RESET)"
 
 # Setup config.toml
@@ -233,10 +209,10 @@ help:
 	@echo "  $(GREEN)setup-config$(RESET)        - Setup the configuration for OpenDevin by providing LLM API key,"
 	@echo "                        LLM Model name, and workspace directory."
 	@echo "  $(GREEN)start-backend$(RESET)       - Start the backend server for the OpenDevin project."
-	@echo "  $(GREEN)start-frontend$(RESET)      - Start the frontend server for the OpenDevin project."
-	@echo "  $(GREEN)run$(RESET)                 - Run the OpenDevin application, starting both backend and frontend servers."
+
+	@echo "  $(GREEN)run$(RESET)                 - Run the OpenDevin application, starting backend server."
 	@echo "                        Backend Log file will be stored in the 'logs' directory."
 	@echo "  $(GREEN)help$(RESET)                - Display this help message, providing information on available targets."
 
 # Phony targets
-.PHONY: build check-dependencies check-python check-npm check-docker check-poetry pull-docker-image install-python-dependencies install-frontend-dependencies install-precommit-hooks lint start-backend start-frontend run setup-config setup-config-prompts help
+.PHONY: build check-dependencies check-python check-npm check-docker check-poetry pull-docker-image install-python-dependencies install-precommit-hooks lint start-backend run setup-config setup-config-prompts help
