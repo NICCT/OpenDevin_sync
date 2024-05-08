@@ -30,7 +30,7 @@ def resolve_path(file_path, working_directory):
 
     # If the path is outside the workspace, deny it
     if not abs_path_in_sandbox.is_relative_to(
-        config.get(ConfigType.WORKSPACE_MOUNT_PATH_IN_SANDBOX)
+        Path(config.get(ConfigType.WORKSPACE_MOUNT_PATH_IN_SANDBOX))
     ):
         raise PermissionError(f'File access not permitted: {file_path}')
 
