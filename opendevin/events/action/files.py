@@ -26,7 +26,7 @@ def resolve_path(file_path, working_directory):
     # Sanitize the path with respect to the root of the full sandbox
     # (deny any .. path traversal to parent directories of the sandbox)
     abs_path_in_sandbox = path_in_sandbox.resolve()
-    print(f"I'm trying to write in this abs path: {abs_path_insandbox}")
+    print(f"I'm trying to write in this abs path: {abs_path_in_sandbox}")
 
     # If the path is outside the workspace, deny it
     if not abs_path_in_sandbox.is_relative_to(
