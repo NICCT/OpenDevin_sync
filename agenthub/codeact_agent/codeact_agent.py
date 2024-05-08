@@ -88,12 +88,12 @@ class CodeActAgent(Agent):
     """
 
     sandbox_plugins: List[PluginRequirement] = [
-        JupyterRequirement(),
+        # JupyterRequirement(),
         SWEAgentCommandsRequirement(),
     ]
     SUPPORTED_ACTIONS = (
         CmdRunAction,
-        IPythonRunCellAction,
+        # IPythonRunCellAction,
         AgentEchoAction,
         AgentTalkAction,
         NullAction,
@@ -102,7 +102,7 @@ class CodeActAgent(Agent):
         AgentMessageObservation,
         UserMessageObservation,
         CmdOutputObservation,
-        IPythonRunCellObservation,
+        # IPythonRunCellObservation,
     )
 
     def __init__(
@@ -188,7 +188,7 @@ class CodeActAgent(Agent):
         response = self.llm.completion(
             messages=self.messages,
             stop=[
-                '</execute_ipython>',
+                #'</execute_ipython>',
                 '</execute_bash>',
             ],
             temperature=0.0,
