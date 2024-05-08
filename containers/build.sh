@@ -18,7 +18,7 @@ cache_tag="$cache_tag_base"
 
 if [[ -n $GITHUB_REF_NAME ]]; then
   # check if ref name is a version number
-  if [[ $GITHUB_REF_NAME =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  if [[ $GITHUB_REF_NAME =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     major_version=$(echo $GITHUB_REF_NAME | cut -d. -f1)
     minor_version=$(echo $GITHUB_REF_NAME | cut -d. -f1,2)
     tags+=($major_version $minor_version)
@@ -44,6 +44,7 @@ if [[ -n "$org_name" ]]; then
   DOCKER_ORG="$org_name"
 fi
 DOCKER_REPOSITORY=$DOCKER_REGISTRY/$DOCKER_ORG/$DOCKER_IMAGE
+DOCKER_REPOSITORY=${DOCKER_REPOSITORY,,} # lowercase
 echo "Repo: $DOCKER_REPOSITORY"
 echo "Base dir: $DOCKER_BASE_DIR"
 
@@ -53,12 +54,12 @@ for tag in ${tags[@]}; do
 done
 if [[ $push -eq 1 ]]; then
   args+=" --push"
+  args+=" --cache-to=type=registry,ref=$DOCKER_REPOSITORY:$cache_tag,mode=max"
 fi
 
 docker buildx build \
   $args \
   --build-arg OPEN_DEVIN_BUILD_VERSION=$OPEN_DEVIN_BUILD_VERSION \
-  --cache-to=type=registry,ref=$DOCKER_REPOSITORY:$cache_tag,mode=max \
   --cache-from=type=registry,ref=$DOCKER_REPOSITORY:$cache_tag \
   --cache-from=type=registry,ref=$DOCKER_REPOSITORY:$cache_tag_base-main \
   --platform linux/amd64,linux/arm64 \

@@ -21,18 +21,13 @@ RESET=$(shell tput -Txterm sgr0)
 build:
 	@echo "$(GREEN)Building project...$(RESET)"
 	@$(MAKE) -s check-dependencies
-	@$(MAKE) -s pull-docker-image
 	@$(MAKE) -s install-python-dependencies
-	@$(MAKE) -s install-precommit-hooks
 	@echo "$(GREEN)Build completed successfully.$(RESET)"
 
 check-dependencies:
 	@echo "$(YELLOW)Checking dependencies...$(RESET)"
 	@$(MAKE) -s check-system
 	@$(MAKE) -s check-python
-	@$(MAKE) -s check-npm
-	@$(MAKE) -s check-nodejs
-	@$(MAKE) -s check-docker
 	@$(MAKE) -s check-poetry
 	@echo "$(GREEN)Dependencies checked successfully.$(RESET)"
 
@@ -58,40 +53,6 @@ check-python:
 		exit 1; \
 	fi
 
-check-npm:
-	@echo "$(YELLOW)Checking npm installation...$(RESET)"
-	@if command -v npm > /dev/null; then \
-		echo "$(BLUE)npm $(shell npm --version) is already installed.$(RESET)"; \
-	else \
-		echo "$(RED)npm is not installed. Please install Node.js to continue.$(RESET)"; \
-		exit 1; \
-	fi
-
-check-nodejs:
-	@echo "$(YELLOW)Checking Node.js installation...$(RESET)"
-	@if command -v node > /dev/null; then \
-		NODE_VERSION=$(shell node --version | sed -E 's/v//g'); \
-		IFS='.' read -r -a NODE_VERSION_ARRAY <<< "$$NODE_VERSION"; \
-		if [ "$${NODE_VERSION_ARRAY[0]}" -gt 18 ] || ([ "$${NODE_VERSION_ARRAY[0]}" -eq 18 ] && [ "$${NODE_VERSION_ARRAY[1]}" -gt 17 ]) || ([ "$${NODE_VERSION_ARRAY[0]}" -eq 18 ] && [ "$${NODE_VERSION_ARRAY[1]}" -eq 17 ] && [ "$${NODE_VERSION_ARRAY[2]}" -ge 1 ]); then \
-			echo "$(BLUE)Node.js $$NODE_VERSION is already installed.$(RESET)"; \
-		else \
-			echo "$(RED)Node.js 18.17.1 or later is required. Please install Node.js 18.17.1 or later to continue.$(RESET)"; \
-			exit 1; \
-		fi; \
-	else \
-		echo "$(RED)Node.js is not installed. Please install Node.js to continue.$(RESET)"; \
-		exit 1; \
-	fi
-
-check-docker:
-	@echo "$(YELLOW)Checking Docker installation...$(RESET)"
-	@if command -v docker > /dev/null; then \
-		echo "$(BLUE)$(shell docker --version) is already installed.$(RESET)"; \
-	else \
-		echo "$(RED)Docker is not installed. Please install Docker to continue.$(RESET)"; \
-		exit 1; \
-	fi
-
 check-poetry:
 	@echo "$(YELLOW)Checking Poetry installation...$(RESET)"
 	@if command -v poetry > /dev/null; then \
@@ -112,11 +73,6 @@ check-poetry:
 		exit 1; \
 	fi
 
-pull-docker-image:
-	@echo "$(YELLOW)Pulling Docker image...$(RESET)"
-	@docker pull $(DOCKER_IMAGE)
-	@echo "$(GREEN)Docker image pulled successfully.$(RESET)"
-
 install-python-dependencies:
 	@echo "$(GREEN)Installing Python dependencies...$(RESET)"
 	@if [ "$(shell uname)" = "Darwin" ]; then \
@@ -125,37 +81,12 @@ install-python-dependencies:
 		poetry run pip install chroma-hnswlib; \
 	fi
 	@poetry install --without evaluation
+# @poetry run playwright install --with-deps chromium
 	@echo "$(GREEN)Python dependencies installed successfully.$(RESET)"
-
-install-precommit-hooks:
-	@echo "$(YELLOW)Installing pre-commit hooks...$(RESET)"
-	@git config --unset-all core.hooksPath || true
-	@poetry run pre-commit install --config $(PRECOMMIT_CONFIG_PATH)
-	@echo "$(GREEN)Pre-commit hooks installed successfully.$(RESET)"
 
 lint:
 	@echo "$(YELLOW)Running linters...$(RESET)"
 	@poetry run pre-commit run --files opendevin/**/* agenthub/**/* --show-diff-on-failure --config $(PRECOMMIT_CONFIG_PATH)
-
-# Start backend
-start-backend:
-	@echo "$(YELLOW)Starting backend...$(RESET)"
-	@poetry run uvicorn opendevin.server.listen:app --port $(BACKEND_PORT) --reload --reload-dir opendevin --reload-dir agenthub --reload-dir evaluation
-
-# Run the app
-run:
-	@echo "$(YELLOW)Running the app...$(RESET)"
-	@if [ "$(OS)" = "Windows_NT" ]; then \
-		echo "$(RED)`make run` is not supported on Windows. Please run `make start-frontend` and `make start-backend` separately.$(RESET)"; \
-		exit 1; \
-	fi
-	@mkdir -p logs
-	@echo "$(YELLOW)Starting backend server...$(RESET)"
-	@poetry run uvicorn opendevin.server.listen:app --port $(BACKEND_PORT) &
-	@echo "$(YELLOW)Waiting for the backend to start...$(RESET)"
-	@until nc -z localhost $(BACKEND_PORT); do sleep 0.1; done
-	@echo "$(GREEN)Backend started successfully.$(RESET)"
-	@echo "$(GREEN)Application started successfully.$(RESET)"
 
 # Setup config.toml
 setup-config:
@@ -165,7 +96,7 @@ setup-config:
 	@echo "$(GREEN)Config.toml setup completed.$(RESET)"
 
 setup-config-prompts:
-	@read -p "Enter your LLM Model name (see https://docs.litellm.ai/docs/providers for full list) [default: $(DEFAULT_MODEL)]: " llm_model; \
+	@read -p "Enter your LLM Model name, used for running without UI. Set the model in the UI after you start the app. (see https://docs.litellm.ai/docs/providers for full list) [default: $(DEFAULT_MODEL)]: " llm_model; \
 	 llm_model=$${llm_model:-$(DEFAULT_MODEL)}; \
 	 echo "LLM_MODEL=\"$$llm_model\"" > $(CONFIG_FILE).tmp
 
@@ -175,12 +106,22 @@ setup-config-prompts:
 	@read -p "Enter your LLM Base URL [mostly used for local LLMs, leave blank if not needed - example: http://localhost:5001/v1/]: " llm_base_url; \
 	 if [[ ! -z "$$llm_base_url" ]]; then echo "LLM_BASE_URL=\"$$llm_base_url\"" >> $(CONFIG_FILE).tmp; fi
 
-	@echo "Enter your LLM Embedding Model\nChoices are openai, azureopenai, llama2 or leave blank to default to 'BAAI/bge-small-en-v1.5' via huggingface"; \
-	 read -p "> " llm_embedding_model; \
-	 	echo "LLM_EMBEDDING_MODEL=\"$$llm_embedding_model\"" >> $(CONFIG_FILE).tmp; \
-		if [ "$$llm_embedding_model" = "llama2" ]; then \
-			read -p "Enter the local model URL (will overwrite LLM_BASE_URL): " llm_base_url; \
-				echo "LLM_BASE_URL=\"$$llm_base_url\"" >> $(CONFIG_FILE).tmp; \
+	@echo "Enter your LLM Embedding Model"; \
+		echo "Choices are:"; \
+		echo "  - openai"; \
+		echo "  - azureopenai"; \
+		echo "  - Embeddings available only with OllamaEmbedding:"; \
+		echo "    - llama2"; \
+		echo "    - mxbai-embed-large"; \
+		echo "    - nomic-embed-text"; \
+		echo "    - all-minilm"; \
+		echo "    - stable-code"; \
+		echo "  - Leave blank to default to 'BAAI/bge-small-en-v1.5' via huggingface"; \
+		read -p "> " llm_embedding_model; \
+		echo "LLM_EMBEDDING_MODEL=\"$$llm_embedding_model\"" >> $(CONFIG_FILE).tmp; \
+		if [ "$$llm_embedding_model" = "llama2" ] || [ "$$llm_embedding_model" = "mxbai-embed-large" ] || [ "$$llm_embedding_model" = "nomic-embed-text" ] || [ "$$llm_embedding_model" = "all-minilm" ] || [ "$$llm_embedding_model" = "stable-code" ]; then \
+			read -p "Enter the local model URL for the embedding model (will set LLM_EMBEDDING_BASE_URL): " llm_embedding_base_url; \
+				echo "LLM_EMBEDDING_BASE_URL=\"$$llm_embedding_base_url\"" >> $(CONFIG_FILE).tmp; \
 		elif [ "$$llm_embedding_model" = "azureopenai" ]; then \
 			read -p "Enter the Azure endpoint URL (will overwrite LLM_BASE_URL): " llm_base_url; \
 				echo "LLM_BASE_URL=\"$$llm_base_url\"" >> $(CONFIG_FILE).tmp; \
@@ -208,9 +149,6 @@ help:
 	@echo "  $(GREEN)lint$(RESET)                - Run linters on the project."
 	@echo "  $(GREEN)setup-config$(RESET)        - Setup the configuration for OpenDevin by providing LLM API key,"
 	@echo "                        LLM Model name, and workspace directory."
-	@echo "  $(GREEN)start-backend$(RESET)       - Start the backend server for the OpenDevin project."
-
-	@echo "  $(GREEN)run$(RESET)                 - Run the OpenDevin application, starting backend server."
 	@echo "                        Backend Log file will be stored in the 'logs' directory."
 	@echo "  $(GREEN)help$(RESET)                - Display this help message, providing information on available targets."
 
