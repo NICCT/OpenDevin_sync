@@ -22,9 +22,7 @@ RESET=$(shell tput -Txterm sgr0)
 build:
 	@echo "$(GREEN)Building project...$(RESET)"
 	@$(MAKE) -s check-dependencies
-	@$(MAKE) -s pull-docker-image
 	@$(MAKE) -s install-python-dependencies
-	@$(MAKE) -s install-frontend-dependencies
 	@$(MAKE) -s install-precommit-hooks
 	@$(MAKE) -s build-frontend
 	@echo "$(GREEN)Build completed successfully.$(RESET)"
@@ -33,9 +31,6 @@ check-dependencies:
 	@echo "$(YELLOW)Checking dependencies...$(RESET)"
 	@$(MAKE) -s check-system
 	@$(MAKE) -s check-python
-	@$(MAKE) -s check-npm
-	@$(MAKE) -s check-nodejs
-	@$(MAKE) -s check-docker
 	@$(MAKE) -s check-poetry
 	@echo "$(GREEN)Dependencies checked successfully.$(RESET)"
 
@@ -61,40 +56,6 @@ check-python:
 		exit 1; \
 	fi
 
-check-npm:
-	@echo "$(YELLOW)Checking npm installation...$(RESET)"
-	@if command -v npm > /dev/null; then \
-		echo "$(BLUE)npm $(shell npm --version) is already installed.$(RESET)"; \
-	else \
-		echo "$(RED)npm is not installed. Please install Node.js to continue.$(RESET)"; \
-		exit 1; \
-	fi
-
-check-nodejs:
-	@echo "$(YELLOW)Checking Node.js installation...$(RESET)"
-	@if command -v node > /dev/null; then \
-		NODE_VERSION=$(shell node --version | sed -E 's/v//g'); \
-		IFS='.' read -r -a NODE_VERSION_ARRAY <<< "$$NODE_VERSION"; \
-		if [ "$${NODE_VERSION_ARRAY[0]}" -gt 18 ] || ([ "$${NODE_VERSION_ARRAY[0]}" -eq 18 ] && [ "$${NODE_VERSION_ARRAY[1]}" -gt 17 ]) || ([ "$${NODE_VERSION_ARRAY[0]}" -eq 18 ] && [ "$${NODE_VERSION_ARRAY[1]}" -eq 17 ] && [ "$${NODE_VERSION_ARRAY[2]}" -ge 1 ]); then \
-			echo "$(BLUE)Node.js $$NODE_VERSION is already installed.$(RESET)"; \
-		else \
-			echo "$(RED)Node.js 18.17.1 or later is required. Please install Node.js 18.17.1 or later to continue.$(RESET)"; \
-			exit 1; \
-		fi; \
-	else \
-		echo "$(RED)Node.js is not installed. Please install Node.js to continue.$(RESET)"; \
-		exit 1; \
-	fi
-
-check-docker:
-	@echo "$(YELLOW)Checking Docker installation...$(RESET)"
-	@if command -v docker > /dev/null; then \
-		echo "$(BLUE)$(shell docker --version) is already installed.$(RESET)"; \
-	else \
-		echo "$(RED)Docker is not installed. Please install Docker to continue.$(RESET)"; \
-		exit 1; \
-	fi
-
 check-poetry:
 	@echo "$(YELLOW)Checking Poetry installation...$(RESET)"
 	@if command -v poetry > /dev/null; then \
@@ -115,11 +76,6 @@ check-poetry:
 		exit 1; \
 	fi
 
-pull-docker-image:
-	@echo "$(YELLOW)Pulling Docker image...$(RESET)"
-	@docker pull $(DOCKER_IMAGE)
-	@echo "$(GREEN)Docker image pulled successfully.$(RESET)"
-
 install-python-dependencies:
 	@echo "$(GREEN)Installing Python dependencies...$(RESET)"
 	@if [ "$(shell uname)" = "Darwin" ]; then \
@@ -131,17 +87,6 @@ install-python-dependencies:
 	@poetry run playwright install --with-deps chromium
 	@echo "$(GREEN)Python dependencies installed successfully.$(RESET)"
 
-install-frontend-dependencies:
-	@echo "$(YELLOW)Setting up frontend environment...$(RESET)"
-	@echo "$(YELLOW)Detect Node.js version...$(RESET)"
-	@cd frontend && node ./scripts/detect-node-version.js
-	@cd frontend && \
-		echo "$(BLUE)Installing frontend dependencies with npm...$(RESET)" && \
-		npm install && \
-		echo "$(BLUE)Running make-i18n with npm...$(RESET)" && \
-		npm run make-i18n
-	@echo "$(GREEN)Frontend dependencies installed successfully.$(RESET)"
-
 install-precommit-hooks:
 	@echo "$(YELLOW)Installing pre-commit hooks...$(RESET)"
 	@git config --unset-all core.hooksPath || true
@@ -152,50 +97,8 @@ lint-backend:
 	@echo "$(YELLOW)Running linters...$(RESET)"
 	@poetry run pre-commit run --files $$(git diff --name-only $$(git merge-base main $$(git branch --show-current)) $$(git branch --show-current) | tr '\n' ' ') --show-diff-on-failure --config $(PRECOMMIT_CONFIG_PATH)
 
-lint-frontend:
-	@echo "$(YELLOW)Running linters for frontend...$(RESET)"
-	@cd frontend && npm run lint
-
 lint:
 	@$(MAKE) -s lint-frontend
-	@$(MAKE) -s lint-backend
-
-test-frontend:
-	@echo "$(YELLOW)Running tests for frontend...$(RESET)"
-	@cd frontend && npm run test
-
-test:
-	@$(MAKE) -s test-frontend
-
-build-frontend:
-	@echo "$(YELLOW)Building frontend...$(RESET)"
-	@cd frontend && npm run build
-
-# Start backend
-start-backend:
-	@echo "$(YELLOW)Starting backend...$(RESET)"
-	@poetry run uvicorn opendevin.server.listen:app --port $(BACKEND_PORT) --reload --reload-exclude "workspace/*"
-
-# Start frontend
-start-frontend:
-	@echo "$(YELLOW)Starting frontend...$(RESET)"
-	@cd frontend && VITE_BACKEND_HOST=$(BACKEND_HOST) VITE_FRONTEND_PORT=$(FRONTEND_PORT) npm run start
-
-# Run the app
-run:
-	@echo "$(YELLOW)Running the app...$(RESET)"
-	@if [ "$(OS)" = "Windows_NT" ]; then \
-		echo "$(RED)`make run` is not supported on Windows. Please run `make start-frontend` and `make start-backend` separately.$(RESET)"; \
-		exit 1; \
-	fi
-	@mkdir -p logs
-	@echo "$(YELLOW)Starting backend server...$(RESET)"
-	@poetry run uvicorn opendevin.server.listen:app --port $(BACKEND_PORT) &
-	@echo "$(YELLOW)Waiting for the backend to start...$(RESET)"
-	@until nc -z localhost $(BACKEND_PORT); do sleep 0.1; done
-	@echo "$(GREEN)Backend started successfully.$(RESET)"
-	@cd frontend && echo "$(BLUE)Starting frontend with npm...$(RESET)" && npm run start -- --port $(FRONTEND_PORT)
-	@echo "$(GREEN)Application started successfully.$(RESET)"
 
 # Setup config.toml
 setup-config:
@@ -258,9 +161,6 @@ help:
 	@echo "  $(GREEN)lint$(RESET)                - Run linters on the project."
 	@echo "  $(GREEN)setup-config$(RESET)        - Setup the configuration for OpenDevin by providing LLM API key,"
 	@echo "                        LLM Model name, and workspace directory."
-	@echo "  $(GREEN)start-backend$(RESET)       - Start the backend server for the OpenDevin project."
-	@echo "  $(GREEN)start-frontend$(RESET)      - Start the frontend server for the OpenDevin project."
-	@echo "  $(GREEN)run$(RESET)                 - Run the OpenDevin application, starting both backend and frontend servers."
 	@echo "                        Backend Log file will be stored in the 'logs' directory."
 	@echo "  $(GREEN)help$(RESET)                - Display this help message, providing information on available targets."
 
