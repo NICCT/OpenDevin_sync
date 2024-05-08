@@ -82,7 +82,7 @@ install-python-dependencies:
 		poetry run pip install chroma-hnswlib; \
 	fi
 	@poetry install --without evaluation
-	@poetry run playwright install --with-deps chromium
+# @poetry run playwright install --with-deps chromium
 	@echo "$(GREEN)Python dependencies installed successfully.$(RESET)"
 
 lint-backend:
