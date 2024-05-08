@@ -23,8 +23,6 @@ build:
 	@echo "$(GREEN)Building project...$(RESET)"
 	@$(MAKE) -s check-dependencies
 	@$(MAKE) -s install-python-dependencies
-	@$(MAKE) -s install-precommit-hooks
-	@$(MAKE) -s build-frontend
 	@echo "$(GREEN)Build completed successfully.$(RESET)"
 
 check-dependencies:
@@ -86,12 +84,6 @@ install-python-dependencies:
 	@poetry install --without evaluation
 	@poetry run playwright install --with-deps chromium
 	@echo "$(GREEN)Python dependencies installed successfully.$(RESET)"
-
-install-precommit-hooks:
-	@echo "$(YELLOW)Installing pre-commit hooks...$(RESET)"
-	@git config --unset-all core.hooksPath || true
-	@poetry run pre-commit install --config $(PRECOMMIT_CONFIG_PATH)
-	@echo "$(GREEN)Pre-commit hooks installed successfully.$(RESET)"
 
 lint-backend:
 	@echo "$(YELLOW)Running linters...$(RESET)"
