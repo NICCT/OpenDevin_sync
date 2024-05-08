@@ -36,7 +36,7 @@ from opendevin.events.observation import (
 )
 from opendevin.events.stream import EventSource, EventStream, EventStreamSubscriber
 from opendevin.runtime import DockerSSHBox
-from opendevin.runtime.browser.browser_env import BrowserEnv
+# from opendevin.runtime.browser.browser_env import BrowserEnv
 
 MAX_ITERATIONS = config.get(ConfigType.MAX_ITERATIONS)
 MAX_CHARS = config.get(ConfigType.MAX_CHARS)
@@ -47,7 +47,7 @@ class AgentController:
     agent: Agent
     max_iterations: int
     action_manager: ActionManager
-    browser: BrowserEnv
+    # browser: BrowserEnv
     event_stream: EventStream
     agent_task: Optional[asyncio.Task] = None
     delegate: 'AgentController | None' = None
@@ -84,7 +84,7 @@ class AgentController:
         # Initialize agent-required plugins for sandbox (if any)
         self.action_manager.init_sandbox_plugins(agent.sandbox_plugins)
         # Initialize browser environment
-        self.browser = BrowserEnv()
+        # self.browser = BrowserEnv()
 
         if isinstance(agent, CodeActAgent) and not isinstance(
             self.action_manager.sandbox, DockerSSHBox
