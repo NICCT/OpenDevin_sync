@@ -6,6 +6,7 @@ import platform
 
 import toml
 from dotenv import load_dotenv
+from pathlib import Path
 
 from opendevin.core.schema import ConfigType
 
@@ -27,7 +28,7 @@ DEFAULT_CONFIG: dict = {
     ConfigType.AWS_SECRET_ACCESS_KEY: None,
     ConfigType.AWS_REGION_NAME: None,
     ConfigType.WORKSPACE_BASE: os.getcwd(),
-    ConfigType.WORKSPACE_MOUNT_PATH: None,
+    ConfigType.WORKSPACE_MOUNT_PATH: Path(os.getcwd()) / 'workspace',
     ConfigType.WORKSPACE_MOUNT_PATH_IN_SANDBOX: '/workspace',
     ConfigType.WORKSPACE_MOUNT_REWRITE: None,
     ConfigType.CACHE_DIR: '/tmp/cache',  # '/tmp/cache' is the default cache directory
