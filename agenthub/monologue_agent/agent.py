@@ -1,7 +1,7 @@
 from typing import List
 
-import agenthub.monologue_agent.utils.prompts as prompts
-from agenthub.monologue_agent.utils.monologue import Monologue
+import opendevin.agenthub.monologue_agent.utils.prompts as prompts
+from opendevin.agenthub.monologue_agent.utils.monologue import Monologue
 from opendevin.controller.agent import Agent
 from opendevin.controller.state.state import State
 from opendevin.core import config
@@ -30,7 +30,7 @@ from opendevin.events.observation import (
 from opendevin.llm.llm import LLM
 
 if config.get(ConfigType.AGENT_MEMORY_ENABLED):
-    from agenthub.monologue_agent.utils.memory import LongTermMemory
+    from opendevin.agenthub.monologue_agent.utils.memory import LongTermMemory
 
 MAX_TOKEN_COUNT_PADDING = 512
 MAX_OUTPUT_LENGTH = 5000
