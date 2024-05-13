@@ -1,7 +1,7 @@
 import re
 from typing import List, Mapping
 
-from opendevin.agenthub.codeact_agent.prompt import EXAMPLES, SYSTEM_MESSAGE
+from agenthub.codeact_agent.prompt import EXAMPLES, SYSTEM_MESSAGE
 from opendevin.controller.agent import Agent
 from opendevin.controller.state.state import State
 from opendevin.events.action import (
