@@ -1,7 +1,7 @@
 import asyncio
 from typing import Optional, Type
 
-from agenthub.codeact_agent.codeact_agent import CodeActAgent
+from opendevin.agenthub.codeact_agent.codeact_agent import CodeActAgent
 from opendevin.controller.action_manager import ActionManager
 from opendevin.controller.agent import Agent
 from opendevin.controller.state.plan import Plan
