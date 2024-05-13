@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 import yaml
 
-from agenthub.micro.registry import all_microagents
+from opendevin.agenthub.micro.registry import all_microagents
 from opendevin.controller.agent import Agent
 from opendevin.controller.state.plan import Plan
 from opendevin.controller.state.state import State

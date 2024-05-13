@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-from agenthub.dummy_agent.agent import DummyAgent
+from opendevin.agenthub.dummy_agent.agent import DummyAgent
 from opendevin.controller.agent_controller import AgentController
 from opendevin.core import config
 from opendevin.core.schema.config import ConfigType

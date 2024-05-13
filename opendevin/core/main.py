@@ -2,7 +2,7 @@ import asyncio
 import sys
 from typing import Type
 
-import agenthub  # noqa F401 (we import this to get the agents registered)
+import opendevin.agenthub  # noqa F401 (we import this to get the agents registered)
 from opendevin.controller import AgentController
 from opendevin.controller.agent import Agent
 from opendevin.core.config import args
