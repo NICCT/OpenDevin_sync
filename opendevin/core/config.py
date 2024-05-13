@@ -27,7 +27,7 @@ DEFAULT_CONFIG: dict = {
     ConfigType.AWS_ACCESS_KEY_ID: None,
     ConfigType.AWS_SECRET_ACCESS_KEY: None,
     ConfigType.AWS_REGION_NAME: None,
-    ConfigType.WORKSPACE_BASE: os.getcwd(),
+    ConfigType.WORKSPACE_BASE: './workspace',
     ConfigType.WORKSPACE_MOUNT_PATH: Path(os.getcwd()) / 'workspace',
     ConfigType.WORKSPACE_MOUNT_PATH_IN_SANDBOX: '/workspace',
     ConfigType.WORKSPACE_MOUNT_REWRITE: None,
