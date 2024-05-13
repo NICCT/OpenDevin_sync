@@ -157,6 +157,9 @@ def parse_arguments():
     args, _ = parser.parse_known_args()
     if args.directory:
         config[ConfigType.WORKSPACE_BASE] = os.path.abspath(args.directory)
+    # In local there is no sandbox, the workspace will have the same pwd as the host
+    if config[ConfigType.SANDBOX_TYPE] == 'local':
+        config[ConfigType.WORKSPACE_MOUNT_PATH_IN_SANDBOX] = config[ConfigType.WORKSPACE_BASE]
         print(f'Setting workspace base to {config[ConfigType.WORKSPACE_BASE]}')
     return args
 
