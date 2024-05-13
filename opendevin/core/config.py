@@ -99,9 +99,10 @@ for k, v in config.items():
 
 # In local there is no sandbox, the workspace will have the same pwd as the host
 if config[ConfigType.SANDBOX_TYPE] == 'local':
-    config[ConfigType.WORKSPACE_MOUNT_PATH_IN_SANDBOX] = config[
-        ConfigType.WORKSPACE_MOUNT_PATH
-    ]
+    config[ConfigType.WORKSPACE_BASE] = os.path.abspath(args.directory)
+    config[ConfigType.WORKSPACE_MOUNT_PATH_IN_SANDBOX] = config[ConfigType.WORKSPACE_BASE]
+    print(f'With no "-d" option providing setting workspace base to {config[ConfigType.WORKSPACE_BASE]}')
+
 
 
 def get_parser():
@@ -160,6 +161,7 @@ def parse_arguments():
     # In local there is no sandbox, the workspace will have the same pwd as the host
     if config[ConfigType.SANDBOX_TYPE] == 'local':
         config[ConfigType.WORKSPACE_MOUNT_PATH_IN_SANDBOX] = config[ConfigType.WORKSPACE_BASE]
+
         print(f'Setting workspace base to {config[ConfigType.WORKSPACE_BASE]}')
     return args
 
