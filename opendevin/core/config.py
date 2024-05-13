@@ -48,15 +48,15 @@ DEFAULT_CONFIG: dict = {
     ConfigType.AGENT_MEMORY_MAX_THREADS: 2,
     ConfigType.AGENT_MEMORY_ENABLED: False,
     ConfigType.LLM_TIMEOUT: None,
-    ConfigType.LLM_TEMPERATURE: None,
+    ConfigType.LLM_TEMPERATURE: 0.0,
     ConfigType.LLM_TOP_P: None,
     # GPT-4 pricing is $10 per 1M input tokens. Since tokenization happens on LLM side,
     # we cannot easily count number of tokens, but we can count characters.
     # Assuming 5 characters per token, 5 million is a reasonable default limit.
     ConfigType.MAX_CHARS: 5_000_000,
-    ConfigType.AGENT: 'CodeActAgent',
+    ConfigType.AGENT: 'MonologueAgent',
     ConfigType.E2B_API_KEY: '',
-    ConfigType.SANDBOX_TYPE: 'ssh',  # Can be 'ssh', 'exec', or 'e2b'
+    ConfigType.SANDBOX_TYPE: 'local',  # Can be 'ssh', 'exec', or 'e2b'
     ConfigType.USE_HOST_NETWORK: 'false',
     ConfigType.SSH_HOSTNAME: 'localhost',
     ConfigType.DISABLE_COLOR: 'false',
