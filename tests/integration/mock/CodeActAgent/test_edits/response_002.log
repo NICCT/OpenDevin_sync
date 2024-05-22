@@ -1,0 +1,3 @@
+Let's correct the typos in the file `bad.txt`. I will open the file for editing and fix the typos without asking for confirmation.
+<execute_bash>
+open bad.txt

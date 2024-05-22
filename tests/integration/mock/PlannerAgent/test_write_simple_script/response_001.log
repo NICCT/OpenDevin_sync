@@ -1,9 +1,8 @@
-```json
 {
-  "action": "modify_task",
+  "action": "add_task",
   "args": {
-    "id": "0",
-    "state": "in_progress"
+    "parent": "",
+    "goal": "Write a shell script 'hello.sh' that prints 'hello'",
+    "subtasks": []
   }
 }
-```

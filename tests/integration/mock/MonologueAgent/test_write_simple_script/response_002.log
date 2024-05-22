@@ -1,6 +1,9 @@
+```json
 {
-  "action": "think",
+  "action": "run",
   "args": {
-    "thought": "Since there are no existing files listed by the 'ls' command, I should create the 'hello.sh' script now."
+    "command": "bash hello.sh",
+    "background": false
   }
 }
+```

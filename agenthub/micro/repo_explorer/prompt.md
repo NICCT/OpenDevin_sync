@@ -10,7 +10,7 @@ of the codebase, including:
 ## Available Actions
 {{ instructions.actions.run }}
 {{ instructions.actions.read }}
-{{ instructions.actions.think }}
+{{ instructions.actions.message }}
 {{ instructions.actions.finish }}
 
 You should ONLY `run` commands that have no side-effects, like `ls` and `grep`.
@@ -20,7 +20,7 @@ When you're done, put your summary into the output of the `finish` action.
 
 ## History
 {{ instructions.history_truncated }}
-{{ to_json(state.history[-10:]) }}
+{{ history_to_json(state.history[-10:]) }}
 
 ## Format
 {{ instructions.format.action }}

@@ -1,5 +1,3 @@
-from typing import List
-
 from opendevin.controller.agent import Agent
 from opendevin.controller.state.state import State
 from opendevin.events.action import Action, AgentFinishAction
@@ -9,6 +7,7 @@ from .prompt import get_prompt, parse_response
 
 
 class PlannerAgent(Agent):
+    VERSION = '1.0'
     """
     The planner agent utilizes a special prompting strategy to create long term plans for solving problems.
     The agent is given its previous action-observation pairs, current task, and hint based on last action taken at every step.
@@ -36,15 +35,19 @@ class PlannerAgent(Agent):
         - Action: The next action to take based on llm response
         """
 
-        if state.plan.task.state in ['completed', 'verified', 'abandoned']:
+        if state.root_task.state in [
+            'completed',
+            'verified',
+            'abandoned',
+        ]:
             return AgentFinishAction()
-        prompt = get_prompt(state.plan, state.history)
+        prompt = get_prompt(state)
         messages = [{'content': prompt, 'role': 'user'}]
-        resp = self.llm.completion(messages=messages)
+        resp = self.llm.do_completion(messages=messages)
         action_resp = resp['choices'][0]['message']['content']
         state.num_of_chars += len(prompt) + len(action_resp)
         action = parse_response(action_resp)
         return action
 
-    def search_memory(self, query: str) -> List[str]:
+    def search_memory(self, query: str) -> list[str]:
         return []

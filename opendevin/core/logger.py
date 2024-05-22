@@ -7,10 +7,9 @@ from typing import Literal, Mapping
 
 from termcolor import colored
 
-from opendevin.core import config
-from opendevin.core.schema.config import ConfigType
+from opendevin.core.config import config
 
-DISABLE_COLOR_PRINTING = config.get(ConfigType.DISABLE_COLOR).lower() == 'true'
+DISABLE_COLOR_PRINTING = config.disable_color
 
 ColorType = Literal[
     'red',
@@ -82,16 +81,16 @@ def get_console_handler():
     return console_handler
 
 
-def get_file_handler():
+def get_file_handler(log_dir=os.path.join(os.getcwd(), 'logs')):
     """
     Returns a file handler for logging.
     """
-    log_dir = os.path.join(os.getcwd(), 'logs')
     os.makedirs(log_dir, exist_ok=True)
     timestamp = datetime.now().strftime('%Y-%m-%d')
     file_name = f'opendevin_{timestamp}.log'
     file_handler = logging.FileHandler(os.path.join(log_dir, file_name))
-    file_handler.setLevel(logging.DEBUG)
+    if config.debug:
+        file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(file_formatter)
     return file_handler
 
@@ -151,9 +150,22 @@ class LlmFileHandler(logging.FileHandler):
         """
         self.filename = filename
         self.message_counter = 1
-        self.session = datetime.now().strftime('%y-%m-%d_%H-%M')
+        if config.debug:
+            self.session = datetime.now().strftime('%y-%m-%d_%H-%M')
+        else:
+            self.session = 'default'
         self.log_directory = os.path.join(os.getcwd(), 'logs', 'llm', self.session)
         os.makedirs(self.log_directory, exist_ok=True)
+        if not config.debug:
+            # Clear the log directory if not in debug mode
+            for file in os.listdir(self.log_directory):
+                file_path = os.path.join(self.log_directory, file)
+                try:
+                    os.unlink(file_path)
+                except Exception as e:
+                    opendevin_logger.error(
+                        'Failed to delete %s. Reason: %s', file_path, e
+                    )
         filename = f'{self.filename}_{self.message_counter:03}.log'
         self.baseFilename = os.path.join(self.log_directory, filename)
         super().__init__(self.baseFilename, mode, encoding, delay)

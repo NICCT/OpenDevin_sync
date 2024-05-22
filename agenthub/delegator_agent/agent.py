@@ -1,5 +1,3 @@
-from typing import List
-
 from opendevin.controller.agent import Agent
 from opendevin.controller.state.state import State
 from opendevin.events.action import Action, AgentDelegateAction, AgentFinishAction
@@ -8,6 +6,7 @@ from opendevin.llm.llm import LLM
 
 
 class DelegatorAgent(Agent):
+    VERSION = '1.0'
     """
     The planner agent utilizes a special prompting strategy to create long term plans for solving problems.
     The agent is given its previous action-observation pairs, current task, and hint based on last action taken at every step.
@@ -38,20 +37,22 @@ class DelegatorAgent(Agent):
         """
         if self.current_delegate == '':
             self.current_delegate = 'study'
+            task = state.get_current_user_intent()
             return AgentDelegateAction(
-                agent='StudyRepoForTaskAgent', inputs={'task': state.plan.main_goal}
+                agent='StudyRepoForTaskAgent', inputs={'task': task}
             )
 
         last_observation = state.history[-1][1]
         if not isinstance(last_observation, AgentDelegateObservation):
             raise Exception('Last observation is not an AgentDelegateObservation')
 
+        goal = state.get_current_user_intent()
         if self.current_delegate == 'study':
             self.current_delegate = 'coder'
             return AgentDelegateAction(
                 agent='CoderAgent',
                 inputs={
-                    'task': state.plan.main_goal,
+                    'task': goal,
                     'summary': last_observation.outputs['summary'],
                 },
             )
@@ -60,7 +61,7 @@ class DelegatorAgent(Agent):
             return AgentDelegateAction(
                 agent='VerifierAgent',
                 inputs={
-                    'task': state.plan.main_goal,
+                    'task': goal,
                 },
             )
         elif self.current_delegate == 'verifier':
@@ -74,12 +75,12 @@ class DelegatorAgent(Agent):
                 return AgentDelegateAction(
                     agent='CoderAgent',
                     inputs={
-                        'task': state.plan.main_goal,
+                        'task': goal,
                         'summary': last_observation.outputs['summary'],
                     },
                 )
         else:
             raise Exception('Invalid delegate state')
 
-    def search_memory(self, query: str) -> List[str]:
+    def search_memory(self, query: str) -> list[str]:
         return []

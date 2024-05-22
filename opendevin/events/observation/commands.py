@@ -24,6 +24,9 @@ class CmdOutputObservation(Observation):
     def message(self) -> str:
         return f'Command `{self.command}` executed with exit code {self.exit_code}.'
 
+    def __str__(self) -> str:
+        return f'**CmdOutputObservation (exit code={self.exit_code})**\n{self.content}'
+
 
 @dataclass
 class IPythonRunCellObservation(Observation):
@@ -40,4 +43,7 @@ class IPythonRunCellObservation(Observation):
 
     @property
     def message(self) -> str:
-        return 'Coded executed in IPython cell.'
+        return 'Code executed in IPython cell.'
+
+    def __str__(self) -> str:
+        return f'**IPythonRunCellObservation**\n{self.content}'

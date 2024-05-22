@@ -1,9 +1,10 @@
 ```json
 {
-  "action": "run",
+  "action": "modify_task",
   "args": {
-    "command": "bash hello.sh",
-    "background": false
+    "task_id": "0",
+    "state": "completed",
+    "thought": "The script 'hello.sh' was written and executed successfully, producing the expected output 'hello'."
   }
 }
 ```

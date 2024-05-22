@@ -40,16 +40,12 @@ class ActionTypeSchema(BaseModel):
     """Opens a web page.
     """
 
+    BROWSE_INTERACTIVE: str = Field(default='browse_interactive')
+    """Interact with the browser instance.
+    """
+
     RECALL: str = Field(default='recall')
     """Searches long-term memory
-    """
-
-    THINK: str = Field(default='think')
-    """Allows the agent to make a plan, set a goal, or record thoughts
-    """
-
-    TALK: str = Field(default='talk')
-    """Allows the agent to respond to the user.
     """
 
     DELEGATE: str = Field(default='delegate')
@@ -59,6 +55,11 @@ class ActionTypeSchema(BaseModel):
     FINISH: str = Field(default='finish')
     """If you're absolutely certain that you've completed your task and have tested your work,
     use the finish action to stop working.
+    """
+
+    REJECT: str = Field(default='reject')
+    """If you're absolutely certain that you cannot complete the task with given requirements,
+    use the reject action to stop working.
     """
 
     NULL: str = Field(default='null')

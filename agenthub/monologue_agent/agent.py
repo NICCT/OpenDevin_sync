@@ -1,22 +1,17 @@
-from typing import List
-
 import agenthub.monologue_agent.utils.prompts as prompts
-from agenthub.monologue_agent.utils.monologue import Monologue
 from opendevin.controller.agent import Agent
 from opendevin.controller.state.state import State
-from opendevin.core import config
+from opendevin.core.config import config
 from opendevin.core.exceptions import AgentNoInstructionError
 from opendevin.core.schema import ActionType
-from opendevin.core.schema.config import ConfigType
 from opendevin.events.action import (
     Action,
     AgentRecallAction,
-    AgentThinkAction,
     BrowseURLAction,
     CmdRunAction,
     FileReadAction,
     FileWriteAction,
-    GitHubPushAction,
+    MessageAction,
     NullAction,
 )
 from opendevin.events.observation import (
@@ -27,10 +22,13 @@ from opendevin.events.observation import (
     NullObservation,
     Observation,
 )
+from opendevin.events.serialization.event import event_to_memory
 from opendevin.llm.llm import LLM
+from opendevin.memory.condenser import MemoryCondenser
+from opendevin.memory.history import ShortTermHistory
 
-if config.get(ConfigType.AGENT_MEMORY_ENABLED):
-    from agenthub.monologue_agent.utils.memory import LongTermMemory
+if config.agent.memory_enabled:
+    from opendevin.memory.memory import LongTermMemory
 
 MAX_TOKEN_COUNT_PADDING = 512
 MAX_OUTPUT_LENGTH = 5000
@@ -71,10 +69,6 @@ INITIAL_THOUGHTS = [
     'BROWSE google.com',
     '<form><input type="text"></input><button type="submit"></button></form>',
     'I can browse the web too!',
-    'If I have done some work and I want to push it to github, I can do that also!',
-    "Let's do it.",
-    'PUSH owner/repo branch',
-    'The repo was successfully pushed to https://github.com/owner/repo/branch',
     'And once I have completed my task, I can use the finish action to stop working.',
     "But I should only use the finish action when I'm absolutely certain that I've completed my task and have tested my work.",
     'Very cool. Now to accomplish my task.',
@@ -86,6 +80,7 @@ INITIAL_THOUGHTS = [
 
 
 class MonologueAgent(Agent):
+    VERSION = '1.0'
     """
     The Monologue Agent utilizes long and short term memory to complete tasks.
     Long term memory is stored as a LongTermMemory object and the model uses it to search for examples from the past.
@@ -93,8 +88,9 @@ class MonologueAgent(Agent):
     """
 
     _initialized = False
-    monologue: Monologue
+    monologue: ShortTermHistory
     memory: 'LongTermMemory | None'
+    memory_condenser: MemoryCondenser
 
     def __init__(self, llm: LLM):
         """
@@ -105,7 +101,7 @@ class MonologueAgent(Agent):
         """
         super().__init__(llm)
 
-    def _add_event(self, event: dict):
+    def _add_event(self, event_dict: dict):
         """
         Adds a new event to the agent's monologue and memory.
         Monologue automatically condenses when it gets too large.
@@ -115,29 +111,33 @@ class MonologueAgent(Agent):
         """
 
         if (
-            'args' in event
-            and 'output' in event['args']
-            and len(event['args']['output']) > MAX_OUTPUT_LENGTH
+            'args' in event_dict
+            and 'output' in event_dict['args']
+            and len(event_dict['args']['output']) > MAX_OUTPUT_LENGTH
         ):
-            event['args']['output'] = (
-                event['args']['output'][:MAX_OUTPUT_LENGTH] + '...'
+            event_dict['args']['output'] = (
+                event_dict['args']['output'][:MAX_OUTPUT_LENGTH] + '...'
             )
 
-        self.monologue.add_event(event)
+        self.monologue.add_event(event_dict)
         if self.memory is not None:
-            self.memory.add_event(event)
+            self.memory.add_event(event_dict)
 
         # Test monologue token length
         prompt = prompts.get_request_action_prompt(
             '',
-            self.monologue.get_thoughts(),
+            self.monologue.get_events(),
             [],
         )
         messages = [{'content': prompt, 'role': 'user'}]
         token_count = self.llm.get_token_count(messages)
 
         if token_count + MAX_TOKEN_COUNT_PADDING > self.llm.max_input_tokens:
-            self.monologue.condense(self.llm)
+            prompt = prompts.get_summarize_monologue_prompt(self.monologue.events)
+            summary_response = self.memory_condenser.condense(
+                summarize_prompt=prompt, llm=self.llm
+            )
+            self.monologue.events = prompts.parse_summary_response(summary_response)
 
     def _initialize(self, task: str):
         """
@@ -159,11 +159,13 @@ class MonologueAgent(Agent):
         if task is None or task == '':
             raise AgentNoInstructionError()
 
-        self.monologue = Monologue()
-        if config.get(ConfigType.AGENT_MEMORY_ENABLED):
+        self.monologue = ShortTermHistory()
+        if config.agent.memory_enabled:
             self.memory = LongTermMemory()
         else:
             self.memory = None
+
+        self.memory_condenser = MemoryCondenser()
 
         self._add_initial_thoughts(task)
         self._initialized = True
@@ -186,7 +188,7 @@ class MonologueAgent(Agent):
                     observation = BrowserOutputObservation(
                         content=thought, url='', screenshot=''
                     )
-                self._add_event(observation.to_memory())
+                self._add_event(event_to_memory(observation))
                 previous_action = ''
             else:
                 action: Action = NullAction()
@@ -211,14 +213,9 @@ class MonologueAgent(Agent):
                     url = thought.split('BROWSE ')[1]
                     action = BrowseURLAction(url=url)
                     previous_action = ActionType.BROWSE
-                elif thought.startswith('PUSH'):
-                    owner_repo, branch = thought.split('PUSH ')[1].split(' ')
-                    owner, repo = owner_repo.split('/')
-                    action = GitHubPushAction(owner=owner, repo=repo, branch=branch)
-                    previous_action = ActionType.PUSH
                 else:
-                    action = AgentThinkAction(thought=thought)
-                self._add_event(action.to_memory())
+                    action = MessageAction(thought)
+                self._add_event(event_to_memory(action))
 
     def step(self, state: State) -> Action:
         """
@@ -230,27 +227,29 @@ class MonologueAgent(Agent):
         Returns:
         - Action: The next action to take based on LLM response
         """
-        self._initialize(state.plan.main_goal)
+
+        goal = state.get_current_user_intent()
+        self._initialize(goal)
         for prev_action, obs in state.updated_info:
-            self._add_event(prev_action.to_memory())
-            self._add_event(obs.to_memory())
+            self._add_event(event_to_memory(prev_action))
+            self._add_event(event_to_memory(obs))
 
         state.updated_info = []
 
         prompt = prompts.get_request_action_prompt(
-            state.plan.main_goal,
-            self.monologue.get_thoughts(),
+            goal,
+            self.monologue.get_events(),
             state.background_commands_obs,
         )
         messages = [{'content': prompt, 'role': 'user'}]
-        resp = self.llm.completion(messages=messages)
+        resp = self.llm.do_completion(messages=messages)
         action_resp = resp['choices'][0]['message']['content']
         state.num_of_chars += len(prompt) + len(action_resp)
         action = prompts.parse_action_response(action_resp)
         self.latest_action = action
         return action
 
-    def search_memory(self, query: str) -> List[str]:
+    def search_memory(self, query: str) -> list[str]:
         """
         Uses VectorIndexRetriever to find related memories within the long term memory.
         Uses search to produce top 10 results.
@@ -259,7 +258,7 @@ class MonologueAgent(Agent):
         - query (str): The query that we want to find related memories for
 
         Returns:
-        - List[str]: A list of top 10 text results that matched the query
+        - list[str]: A list of top 10 text results that matched the query
         """
         if self.memory is None:
             return []

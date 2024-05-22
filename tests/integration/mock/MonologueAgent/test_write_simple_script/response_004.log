@@ -1,9 +1,6 @@
 ```json
 {
-  "action": "run",
-  "args": {
-    "command": "bash hello.sh",
-    "background": false
-  }
+  "action": "finish",
+  "args": {}
 }
 ```
