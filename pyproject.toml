@@ -26,6 +26,7 @@ toml = "*"
 uvicorn = "*"
 types-toml = "*"
 numpy = "*"
+spacy = "^3.7.1"
 json-repair = "*"
 browsergym = "0.2.6" # integrate browsergym as the browsing interface
 html2text = "*"
