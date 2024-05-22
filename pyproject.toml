@@ -13,6 +13,7 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.11"
+chromadb = "*"
 datasets = "*"
 pandas = "*"
 litellm = "*"
@@ -40,7 +41,6 @@ pyarrow = "16.1.0" # transitive dependency, pinned here to avoid conflicts
 [tool.poetry.group.llama-index.dependencies]
 llama-index = "*"
 llama-index-vector-stores-chroma = "*"
-chromadb = "*"
 llama-index-embeddings-huggingface = "*"
 torch = "2.2.2"
 llama-index-embeddings-azure-openai = "*"
