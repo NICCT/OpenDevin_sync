@@ -45,7 +45,7 @@ class LLMConfig(metaclass=Singleton):
         max_output_tokens: The maximum number of output tokens. This is sent to the LLM.
     """
 
-    model: str = 'gpt-3.5-turbo'
+    model: str = 'gpt-4-0125-preview'
     api_key: str | None = None
     base_url: str | None = None
     api_version: str | None = None
@@ -60,7 +60,7 @@ class LLMConfig(metaclass=Singleton):
     retry_max_wait: int = 60
     timeout: int | None = None
     max_chars: int = 5_000_000  # fallback for token counting
-    temperature: float = 0
+    temperature: float = 0.0
     top_p: float = 0.5
     custom_llm_provider: str | None = None
     max_input_tokens: int | None = None
@@ -87,7 +87,7 @@ class AgentConfig(metaclass=Singleton):
         memory_max_threads: The maximum number of threads indexing at the same time for embeddings.
     """
 
-    name: str = 'CodeActAgent'
+    name: str = 'MonologueAgent'
     memory_enabled: bool = False
     memory_max_threads: int = 2
 
@@ -150,7 +150,7 @@ class AppConfig(metaclass=Singleton):
     run_as_devin: bool = True
     max_iterations: int = 100
     e2b_api_key: str = ''
-    sandbox_type: str = 'ssh'  # Can be 'ssh', 'exec', or 'e2b'
+    sandbox_type: str = 'local'  # Can be 'ssh', 'exec', or 'e2b'
     use_host_network: bool = False
     ssh_hostname: str = 'localhost'
     disable_color: bool = False
